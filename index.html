@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一元二次不等式測驗（一般式）</title>
+  <!-- KaTeX 用於渲染數學公式 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      padding: 12px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.3rem;
+      color: #1a365d;
+      margin-bottom: 12px;
+    }
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .question-display {
+      font-size: 1.3rem;
+      text-align: center;
+      padding: 8px 0;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #059669;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #047857;
+    }
+    .answer-box {
+      display: none;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+    .answer-box.show {
+      display: block;
+    }
+    .answer-content {
+      font-size: 1.25rem;
+      text-align: center;
+      color: #15803d;
+      padding: 10px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>一元二次不等式測驗（一般式）</h1>
+
+  <div class="card">
+    <div class="card-title">題目</div>
+    <div id="question" class="question-display"></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn-primary" onclick="generateQuestion()">產生新題目</button>
+    <button class="btn-secondary" onclick="toggleAnswer()">顯示答案</button>
+  </div>
+
+  <div id="answerCard" class="card answer-box">
+    <div class="card-title">答案</div>
+    <div id="answer" class="answer-content"></div>
+  </div>
+</div>
+
+<script>
+  // 兩數最大公因數
+  function gcd(a, b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    while (b) {
+      let t = b;
+      b = a % b;
+      a = t;
+    }
+    return a;
+  }
+
+  // 三數最大公因數
+  function gcd3(a, b, c) {
+    return gcd(gcd(a, b), c);
+  }
+
+  // 隨機整數 [min, max] 且可排除 0
+  function getRandomInt(min, max, excludeZero = false) {
+    let val = 0;
+    do {
+      val = Math.floor(Math.random() * (max - min + 1)) + min;
+    } while (excludeZero && val === 0);
+    return val;
+  }
+
+  // 化簡根號：將 sqrt(n) 化為 k * sqrt(m)
+  function simplifySqrt(n) {
+    let k = 1;
+    let m = n;
+    for (let i = 2; i * i <= m; i++) {
+      while (m % (i * i) === 0) {
+        k *= i;
+        m /= (i * i);
+      }
+    }
+    return { k, m };
+  }
+
+  // 化簡並格式化公式法的根： (-B ± sqrt(Δ)) / (2A)
+  function formatFormulaRoot(A, B, delta, sign) {
+    const den = 2 * A;
+    const numReal = -B;
+    const { k, m } = simplifySqrt(delta);
+
+    // 化簡分子與分母的公因數
+    const commonGcd = gcd3(numReal, k, den);
+    const rNumReal = numReal / commonGcd;
+    const rK = k / commonGcd;
+    const rDen = den / commonGcd;
+
+    // 構建根號 TeX
+    let sqrtTex = "";
+    if (m === 1) {
+      // 能完全開根號（實際上不應進入此分支）
+      sqrtTex = `${rK}`;
+    } else {
+      sqrtTex = (rK === 1) ? `\\sqrt{${m}}` : `${rK}\\sqrt{${m}}`;
+    }
+
+    const signSymbol = (sign === '+') ? '+' : '-';
+
+    // 格式化分子
+    let numTex = "";
+    if (rNumReal === 0) {
+      numTex = (sign === '-') ? `-${sqrtTex}` : `${sqrtTex}`;
+    } else {
+      numTex = `${rNumReal} ${signSymbol} ${sqrtTex}`;
+    }
+
+    // 格式化分數 (考慮負號前置)
+    if (rDen === 1) {
+      return numTex;
+    } else if (rDen < 0) {
+      // 正規化分母為正數
+      const negNumReal = -rNumReal;
+      const oppSign = (sign === '+') ? '-' : '+';
+      let normNumTex = "";
+      if (negNumReal === 0) {
+        normNumTex = (oppSign === '-') ? `-${sqrtTex}` : `${sqrtTex}`;
+      } else {
+        normNumTex = `${negNumReal} ${oppSign} ${sqrtTex}`;
+      }
+      return `\\frac{${normNumTex}}{${Math.abs(rDen)}}`;
+    }
+
+    return `\\frac{${numTex}}{${rDen}}`;
+  }
+
+  // 將分數簡化並格式化為 TeX 格式 (負號置於分數正前方)
+  function formatFraction(num, den) {
+    if (den < 0) {
+      num = -num;
+      den = -den;
+    }
+    const g = gcd(num, den);
+    num /= g;
+    den /= g;
+
+    if (den === 1) return `${num}`;
+    
+    if (num < 0) {
+      return `-\\frac{${Math.abs(num)}}{${den}}`;
+    }
+    return `\\frac{${num}}{${den}}`;
+  }
+
+  // 將一般式 ax^2 + bx + c 格式化為數學表達式
+  function formatStandardForm(A, B, C) {
+    let res = "";
+
+    // ax^2
+    if (A === 1) res += "x^2";
+    else if (A === -1) res += "-x^2";
+    else res += `${A}x^2`;
+
+    // bx
+    if (B > 0) {
+      res += B === 1 ? " + x" : ` + ${B}x`;
+    } else if (B < 0) {
+      res += B === -1 ? " - x" : ` - ${Math.abs(B)}x`;
+    }
+
+    // c
+    if (C > 0) res += ` + ${C}`;
+    else if (C < 0) res += ` - ${Math.abs(C)}`;
+
+    return res;
+  }
+
+  let currentProblem = null;
+
+  function generateQuestion() {
+    // 隱藏答案區域
+    document.getElementById("answerCard").classList.remove("show");
+
+    // 隨機選擇 Δ 的類型:
+    // 0 -> Δ > 0 (有理根/可因式分解)
+    // 1 -> Δ > 0 (無理根/需要公式法)
+    // 2 -> Δ = 0
+    // 3 -> Δ < 0
+    const deltaType = getRandomInt(0, 3);
+    
+    let A, B, C, ansTex = "";
+    const ops = ['>', '>=', '<', '<='];
+    const opLatex = ['>', '\\ge', '<', '\\le'];
+    const opIdx = Math.floor(Math.random() * ops.length);
+    const op = ops[opIdx];
+    const opTex = opLatex[opIdx];
+
+    if (deltaType === 0) {
+      // --- Δ > 0 (可因式分解) ---
+      let f1_a, f1_b, f2_a, f2_b, root1, root2;
+      while (true) {
+        f1_a = getRandomInt(1, 3);
+        f1_b = getRandomInt(-6, 6, true);
+        f2_a = getRandomInt(1, 3);
+        f2_b = getRandomInt(-6, 6, true);
+
+        A = f1_a * f2_a;
+        B = f1_a * f2_b + f1_b * f2_a;
+        C = f1_b * f2_b;
+
+        if (gcd3(A, B, C) !== 1) continue;
+
+        root1 = -f1_b / f1_a;
+        root2 = -f2_b / f2_a;
+
+        if (Math.abs(root1 - root2) > 1e-6) break;
+      }
+
+      let rSmallTex, rBigTex;
+      if (root1 < root2) {
+        rSmallTex = formatFraction(-f1_b, f1_a);
+        rBigTex = formatFraction(-f2_b, f2_a);
+      } else {
+        rSmallTex = formatFraction(-f2_b, f2_a);
+        rBigTex = formatFraction(-f1_b, f1_a);
+      }
+
+      const isStrict = (op === '>' || op === '<');
+      const isGreater = (op === '>' || op === '>=');
+
+      if (isGreater) {
+        const op1 = isStrict ? '<' : '\\le';
+        const op2 = isStrict ? '>' : '\\ge';
+        ansTex = `x ${op1} ${rSmallTex} \\quad \\text{或} \\quad x ${op2} ${rBigTex}`;
+      } else {
+        const op1 = isStrict ? '<' : '\\le';
+        ansTex = `${rSmallTex} ${op1} x ${op1} ${rBigTex}`;
+      }
+
+    } else if (deltaType === 1) {
+      // --- Δ > 0 (無理根/公式法) ---
+      while (true) {
+        A = getRandomInt(1, 3);
+        B = getRandomInt(-6, 6);
+        C = getRandomInt(-8, 8, true);
+
+        // 確保三數互質
+        if (gcd3(A, B, C) !== 1) continue;
+
+        const delta = B * B - 4 * A * C;
+        if (delta <= 0) continue;
+
+        // 確保 Δ 不是完全平方數（確保是無理根，非整數/分數根）
+        const sqrtDelta = Math.sqrt(delta);
+        if (Number.isInteger(sqrtDelta)) continue;
+
+        // 生成公式法兩根 TeX
+        const rSmallTex = formatFormulaRoot(A, B, delta, '-');
+        const rBigTex = formatFormulaRoot(A, B, delta, '+');
+
+        const isStrict = (op === '>' || op === '<');
+        const isGreater = (op === '>' || op === '>=');
+
+        if (isGreater) {
+          const op1 = isStrict ? '<' : '\\le';
+          const op2 = isStrict ? '>' : '\\ge';
+          ansTex = `x ${op1} ${rSmallTex} \\quad \\text{或} \\quad x ${op2} ${rBigTex}`;
+        } else {
+          const op1 = isStrict ? '<' : '\\le';
+          ansTex = `${rSmallTex} ${op1} x ${op1} ${rBigTex}`;
+        }
+        break;
+      }
+
+    } else if (deltaType === 2) {
+      // --- Δ = 0 --- (a*x + b)^2
+      while (true) {
+        const a_val = getRandomInt(1, 3);
+        const b_val = getRandomInt(-6, 6, true);
+
+        A = a_val * a_val;
+        B = 2 * a_val * b_val;
+        C = b_val * b_val;
+
+        if (gcd3(A, B, C) === 1) {
+          const rootTex = formatFraction(-b_val, a_val);
+
+          if (op === '>') {
+            ansTex = `x \\neq ${rootTex}`;
+          } else if (op === '>=') {
+            ansTex = `\\text{全體實數 } (\\mathbb{R})`;
+          } else if (op === '<') {
+            ansTex = `\\text{無解}`;
+          } else if (op === '<=') {
+            ansTex = `x = ${rootTex}`;
+          }
+          break;
+        }
+      }
+
+    } else {
+      // --- Δ < 0 --- (Ax^2 + Bx + C 恆正)
+      while (true) {
+        A = getRandomInt(1, 3);
+        B = getRandomInt(-6, 6);
+        const minC = Math.floor((B * B) / (4 * A)) + 1;
+        C = getRandomInt(minC, minC + 5);
+
+        if (gcd3(A, B, C) === 1) break;
+      }
+
+      if (op === '>' || op === '>=') {
+        ansTex = `\\text{全體實數 } (\\mathbb{R})`;
+      } else {
+        ansTex = `\\text{無解}`;
+      }
+    }
+
+    currentProblem = { A, B, C, opTex, ansTex };
+
+    // 渲染題目 TeX
+    const exprTex = `${formatStandardForm(A, B, C)} ${opTex} 0`;
+    const questionEl = document.getElementById("question");
+    katex.render(exprTex, questionEl, { displayMode: true });
+  }
+
+  function toggleAnswer() {
+    const answerCard = document.getElementById("answerCard");
+    if (answerCard.classList.contains("show")) {
+      answerCard.classList.remove("show");
+      return;
+    }
+
+    if (!currentProblem) return;
+
+    // 渲染答案
+    katex.render(currentProblem.ansTex, document.getElementById("answer"), { displayMode: true });
+
+    answerCard.classList.add("show");
+  }
+
+  // 初始化第一題
+  window.onload = function() {
+    generateQuestion();
+  };
+</script>
+
+</body>
+</html>
